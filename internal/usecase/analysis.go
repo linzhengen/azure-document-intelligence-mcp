@@ -6,8 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/linzhengen/azure-document-intelligence-mcp/internal/domain"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/linzhengen/azure-document-intelligence-mcp/internal/domain/analysis"
 )
 
 // AnalysisParams defines the parameters for the document analysis tool.
@@ -15,12 +16,12 @@ type AnalysisParams struct {
 	ModelID         string `json:"modelId"`
 	DocumentURL     string `json:"documentUrl,omitempty"`
 	DocumentContent string `json:"documentContent,omitempty"` // Base64 encoded content
-	ContentType     string `json:"contentType,omitempty"`    // Required when documentContent is provided
+	ContentType     string `json:"contentType,omitempty"`     // Required when documentContent is provided
 }
 
 // NewAnalysisHandler creates a tool handler for document analysis.
-func NewAnalysisHandler(diClient domain.Client) func(context.Context, *mcp.CallToolRequest, *AnalysisParams) (*mcp.CallToolResult, *domain.AnalyzeResult, error) {
-	return func(ctx context.Context, req *mcp.CallToolRequest, params *AnalysisParams) (*mcp.CallToolResult, *domain.AnalyzeResult, error) {
+func NewAnalysisHandler(analyzerRepo analysis.Repository) func(context.Context, *mcp.CallToolRequest, *AnalysisParams) (*mcp.CallToolResult, *analysis.AnalyzeResult, error) {
+	return func(ctx context.Context, req *mcp.CallToolRequest, params *AnalysisParams) (*mcp.CallToolResult, *analysis.AnalyzeResult, error) {
 		if params.ModelID != "prebuilt-read" && params.ModelID != "prebuilt-layout" {
 			return nil, nil, fmt.Errorf("unsupported modelId: %s", params.ModelID)
 		}
@@ -41,14 +42,14 @@ func NewAnalysisHandler(diClient domain.Client) func(context.Context, *mcp.CallT
 			}
 		}
 
-		analysisReq := domain.AnalyzeDocumentRequest{
+		analysisReq := analysis.AnalyzeDocumentRequest{
 			ModelID:     params.ModelID,
 			DocURL:      params.DocumentURL,
 			Content:     content,
 			ContentType: params.ContentType,
 		}
 
-		result, err := diClient.AnalyzeDocument(ctx, analysisReq)
+		result, err := analyzerRepo.AnalyzeDocument(ctx, analysisReq)
 		if err != nil {
 			return nil, nil, err
 		}

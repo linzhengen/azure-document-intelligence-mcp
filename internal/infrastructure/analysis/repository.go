@@ -1,5 +1,4 @@
-//ref: https://github.com/adrianliechti/wingman/blob/0a07f68da0aa44b9eadbedd85b29be48656f2fe5/pkg/extractor/azure/client.go#L64
-package azure
+package analysis
 
 import (
 	"bytes"
@@ -10,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/linzhengen/azure-document-intelligence-mcp/internal/domain"
+	"github.com/linzhengen/azure-document-intelligence-mcp/internal/domain/analysis"
 )
 
 const (
@@ -19,15 +18,15 @@ const (
 	retryDelay = 5 * time.Second
 )
 
-type diClient struct {
+type repository struct {
 	endpoint   string
 	apiKey     string
 	httpClient *http.Client
 }
 
-// NewClient creates a new Document Intelligence client.
-func NewClient(endpoint, apiKey string) domain.Client {
-	return &diClient{
+// NewRepository creates a new Document Intelligence client.
+func NewRepository(endpoint, apiKey string) analysis.Repository {
+	return &repository{
 		endpoint:   endpoint,
 		apiKey:     apiKey,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
@@ -35,15 +34,15 @@ func NewClient(endpoint, apiKey string) domain.Client {
 }
 
 // AnalyzeDocument analyzes the specified document URL.
-func (c *diClient) AnalyzeDocument(ctx context.Context, req domain.AnalyzeDocumentRequest) (*domain.AnalyzeResult, error) {
+func (r *repository) AnalyzeDocument(ctx context.Context, req analysis.AnalyzeDocumentRequest) (*analysis.AnalyzeResult, error) {
 	// 1. Send analysis request
-	operationLocation, err := c.initiateAnalysis(ctx, req)
+	operationLocation, err := r.initiateAnalysis(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiate analysis: %w", err)
 	}
 
 	// 2. Poll for the result
-	result, err := c.pollForResult(ctx, operationLocation)
+	result, err := r.pollForResult(ctx, operationLocation)
 	if err != nil {
 		return nil, fmt.Errorf("failed to poll for result: %w", err)
 	}
@@ -51,8 +50,8 @@ func (c *diClient) AnalyzeDocument(ctx context.Context, req domain.AnalyzeDocume
 	return result, nil
 }
 
-func (c *diClient) initiateAnalysis(ctx context.Context, analysisReq domain.AnalyzeDocumentRequest) (string, error) {
-	requestURL := fmt.Sprintf("%s/documentintelligence/documentModels/%s:analyze?api-version=%s", c.endpoint, analysisReq.ModelID, apiVersion)
+func (r *repository) initiateAnalysis(ctx context.Context, analysisReq analysis.AnalyzeDocumentRequest) (string, error) {
+	requestURL := fmt.Sprintf("%s/documentintelligence/documentModels/%s:analyze?api-version=%s", r.endpoint, analysisReq.ModelID, apiVersion)
 
 	var requestBody io.Reader
 	var contentType string
@@ -77,9 +76,9 @@ func (c *diClient) initiateAnalysis(ctx context.Context, analysisReq domain.Anal
 	}
 
 	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("Ocp-Apim-Subscription-Key", c.apiKey)
+	req.Header.Set("Ocp-Apim-Subscription-Key", r.apiKey)
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := r.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
@@ -97,20 +96,19 @@ func (c *diClient) initiateAnalysis(ctx context.Context, analysisReq domain.Anal
 
 	return operationLocation, nil
 
-	
 }
 
-func (c *diClient) pollForResult(ctx context.Context, operationLocation string) (*domain.AnalyzeResult, error) {
-	var result domain.AnalyzeResult
+func (r *repository) pollForResult(ctx context.Context, operationLocation string) (*analysis.AnalyzeResult, error) {
+	var result analysis.AnalyzeResult
 
 	for i := 0; i < maxRetries; i++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, operationLocation, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create polling request: %w", err)
 		}
-		req.Header.Set("Ocp-Apim-Subscription-Key", c.apiKey)
+		req.Header.Set("Ocp-Apim-Subscription-Key", r.apiKey)
 
-		resp, err := c.httpClient.Do(req)
+		resp, err := r.httpClient.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to send polling request: %w", err)
 		}

@@ -1,7 +1,6 @@
-package domain
+package analysis
 
 import (
-	"context"
 	"time"
 )
 
@@ -13,12 +12,7 @@ type AnalyzeDocumentRequest struct {
 	ContentType string
 }
 
-type Client interface {
-	AnalyzeDocument(ctx context.Context, req AnalyzeDocumentRequest) (*AnalyzeResult, error)
-}
-
 // AnalyzeResult represents the complete result of a document analysis operation.
-// See: https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/how-to-guides/use-sdk-rest-api?view=doc-intel-4.0.0&pivots=programming-language-rest-api#get-result-response-body
 type AnalyzeResult struct {
 	Status              string             `json:"status"`
 	CreatedDateTime     time.Time          `json:"createdDateTime"`
