@@ -15,21 +15,37 @@ import (
 const (
 	apiVersion = "2024-11-30"
 	maxRetries = 10
-	retryDelay = 5 * time.Second
 )
+
+var retryDelay = 5 * time.Second
+
+// HTTPClient is an interface for making HTTP requests.
+// It's implemented by *http.Client.
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
 
 type repository struct {
 	endpoint   string
 	apiKey     string
-	httpClient *http.Client
+	httpClient HTTPClient
 }
 
 // NewRepository creates a new Document Intelligence client.
-func NewRepository(endpoint, apiKey string) analysis.Repository {
+func NewRepository(endpoint, apiKey string, timeout int) analysis.Repository {
+	return &repository{
+		endpoint: endpoint,
+		apiKey:   apiKey,
+		httpClient: &http.Client{Timeout: time.Duration(timeout) * time.Second},
+	}
+}
+
+// NewRepositoryWithClient creates a new Document Intelligence client with a custom http client.
+func NewRepositoryWithClient(endpoint, apiKey string, httpClient HTTPClient) analysis.Repository {
 	return &repository{
 		endpoint:   endpoint,
 		apiKey:     apiKey,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: httpClient,
 	}
 }
 
@@ -135,7 +151,9 @@ func (r *repository) pollForResult(ctx context.Context, operationLocation string
 			return nil, fmt.Errorf("analysis failed")
 		case "running", "notStarted":
 			// Continue
-			time.Sleep(retryDelay)
+			if i < maxRetries-1 {
+				time.Sleep(retryDelay)
+			}
 		default:
 			return nil, fmt.Errorf("unknown status: %s", result.Status)
 		}

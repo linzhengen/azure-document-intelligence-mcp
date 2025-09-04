@@ -22,7 +22,7 @@ func main() {
 	}
 
 	// 2. Initialize infrastructure layer
-	analysisRepo := analysisinfra.NewRepository(cfg.AzureEndpoint, cfg.AzureAPIKey)
+	analysisRepo := analysisinfra.NewRepository(cfg.AzureEndpoint, cfg.AzureAPIKey, cfg.HTTPClientTimeout)
 
 	// 3. Create MCP server
 	server := mcp.NewServer(&mcp.Implementation{
