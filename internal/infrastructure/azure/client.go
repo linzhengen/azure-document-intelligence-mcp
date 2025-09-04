@@ -1,3 +1,4 @@
+//ref: https://github.com/adrianliechti/wingman/blob/0a07f68da0aa44b9eadbedd85b29be48656f2fe5/pkg/extractor/azure/client.go#L64
 package azure
 
 import (
@@ -13,7 +14,7 @@ import (
 )
 
 const (
-	apiVersion = "2023-07-31"
+	apiVersion = "2024-11-30"
 	maxRetries = 10
 	retryDelay = 5 * time.Second
 )
@@ -34,9 +35,9 @@ func NewClient(endpoint, apiKey string) domain.Client {
 }
 
 // AnalyzeDocument analyzes the specified document URL.
-func (c *diClient) AnalyzeDocument(ctx context.Context, modelID string, docURL string) (*domain.AnalyzeResult, error) {
+func (c *diClient) AnalyzeDocument(ctx context.Context, req domain.AnalyzeDocumentRequest) (*domain.AnalyzeResult, error) {
 	// 1. Send analysis request
-	operationLocation, err := c.initiateAnalysis(ctx, modelID, docURL)
+	operationLocation, err := c.initiateAnalysis(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiate analysis: %w", err)
 	}
@@ -50,27 +51,39 @@ func (c *diClient) AnalyzeDocument(ctx context.Context, modelID string, docURL s
 	return result, nil
 }
 
-func (c *diClient) initiateAnalysis(ctx context.Context, modelID string, docURL string) (string, error) {
-	requestURL := fmt.Sprintf("%s/documentintelligence/documentModels/%s:analyze?api-version=%s", c.endpoint, modelID, apiVersion)
+func (c *diClient) initiateAnalysis(ctx context.Context, analysisReq domain.AnalyzeDocumentRequest) (string, error) {
+	requestURL := fmt.Sprintf("%s/documentintelligence/documentModels/%s:analyze?api-version=%s", c.endpoint, analysisReq.ModelID, apiVersion)
 
-	requestBody, err := json.Marshal(map[string]string{"urlSource": docURL})
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal request body: %w", err)
+	var requestBody io.Reader
+	var contentType string
+
+	if analysisReq.DocURL != "" {
+		jsonBody, err := json.Marshal(map[string]string{"urlSource": analysisReq.DocURL})
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal request body: %w", err)
+		}
+		requestBody = bytes.NewBuffer(jsonBody)
+		contentType = "application/json"
+	} else if analysisReq.Content != nil {
+		requestBody = bytes.NewBuffer(analysisReq.Content)
+		contentType = analysisReq.ContentType
+	} else {
+		return "", fmt.Errorf("no document source provided (URL or content)")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, requestBody)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Ocp-Apim-Subscription-Key", c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusAccepted {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -83,6 +96,8 @@ func (c *diClient) initiateAnalysis(ctx context.Context, modelID string, docURL 
 	}
 
 	return operationLocation, nil
+
+	
 }
 
 func (c *diClient) pollForResult(ctx context.Context, operationLocation string) (*domain.AnalyzeResult, error) {
@@ -101,12 +116,12 @@ func (c *diClient) pollForResult(ctx context.Context, operationLocation string) 
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, fmt.Errorf("unexpected status code during polling: %d", resp.StatusCode)
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read polling response body: %w", err)
 		}

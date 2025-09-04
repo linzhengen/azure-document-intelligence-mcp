@@ -36,7 +36,7 @@ func main() {
 	// 5. Register the analysis tool using ToolFor to ensure correct handler type
 	analyzeToolDef := &mcp.Tool{
 		Name:        "analyze_document",
-		Description: "Analyzes a document using Azure Document Intelligence. Pass 'prebuilt-read' or 'prebuilt-layout' in the modelId parameter.",
+		Description: "Analyzes a document using Azure Document Intelligence. Pass 'prebuilt-read' or 'prebuilt-layout' in the modelId parameter. Provide the document either via 'documentUrl' or by passing base64 encoded data in 'documentContent' with its 'contentType'.",
 	}
 	tool, handler := mcp.ToolFor[*usecase.AnalysisParams, *domain.AnalyzeResult](analyzeToolDef, analysisHandler)
 	server.AddTool(tool, handler)
