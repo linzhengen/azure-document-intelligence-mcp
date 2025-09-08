@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -54,10 +53,6 @@ func NewAnalysisHandler(analyzerRepo analysis.Repository) func(context.Context, 
 		if err != nil {
 			return nil, nil, err
 		}
-		resultBytes, err := json.Marshal(result)
-		if err != nil {
-			return nil, nil, err
-		}
-		return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: string(resultBytes)}}}, result, nil
+		return nil, result, nil
 	}
 }

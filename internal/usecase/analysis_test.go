@@ -1,4 +1,3 @@
-
 package usecase
 
 import (
@@ -8,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/linzhengen/azure-document-intelligence-mcp/internal/domain/analysis"
-	
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

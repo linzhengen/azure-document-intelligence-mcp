@@ -1,10 +1,10 @@
 module github.com/linzhengen/azure-document-intelligence-mcp
 
-go 1.24.3
+go 1.25.1
 
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/modelcontextprotocol/go-sdk v0.3.1
+	github.com/modelcontextprotocol/go-sdk v0.4.0
 	github.com/stretchr/testify v1.11.1
 )
 

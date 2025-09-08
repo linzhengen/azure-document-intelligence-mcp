@@ -1,6 +1,6 @@
 services:
   app:
-    image: cosmtrek/air:v1.62.0
+    image: cosmtrek/air:v1.63.0
     working_dir: /app
     volumes:
       - .:/app
