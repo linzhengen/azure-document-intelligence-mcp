@@ -14,14 +14,14 @@ import (
 
 // MockAnalysisRepository is a mock implementation of the analysis.Repository interface.
 type MockAnalysisRepository struct {
-	AnalyzeDocumentFunc func(ctx context.Context, req analysis.AnalyzeDocumentRequest) (*analysis.AnalyzeResult, error)
+	AnalyzeDocumentFunc func(ctx context.Context, modelID string, options analysis.AnalyzeDocumentOptions) (*analysis.AnalyzeOperationResult, error)
 }
 
-func (m *MockAnalysisRepository) AnalyzeDocument(ctx context.Context, req analysis.AnalyzeDocumentRequest) (*analysis.AnalyzeResult, error) {
+func (m *MockAnalysisRepository) AnalyzeDocument(ctx context.Context, modelID string, options analysis.AnalyzeDocumentOptions) (*analysis.AnalyzeOperationResult, error) {
 	if m.AnalyzeDocumentFunc != nil {
-		return m.AnalyzeDocumentFunc(ctx, req)
+		return m.AnalyzeDocumentFunc(ctx, modelID, options)
 	}
-	return &analysis.AnalyzeResult{Status: "succeeded"}, nil
+	return &analysis.AnalyzeOperationResult{Status: "succeeded"}, nil
 }
 
 func TestAnalysisHandler_SuccessWithURL(t *testing.T) {
@@ -145,7 +145,7 @@ func TestAnalysisHandler_AnalyzerError(t *testing.T) {
 	ctx := context.Background()
 	analyzerErr := errors.New("analyzer error")
 	mockRepo := &MockAnalysisRepository{
-		AnalyzeDocumentFunc: func(ctx context.Context, req analysis.AnalyzeDocumentRequest) (*analysis.AnalyzeResult, error) {
+		AnalyzeDocumentFunc: func(ctx context.Context, modelID string, options analysis.AnalyzeDocumentOptions) (*analysis.AnalyzeOperationResult, error) {
 			return nil, analyzerErr
 		},
 	}

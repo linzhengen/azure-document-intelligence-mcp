@@ -20,8 +20,8 @@ type AnalysisParams struct {
 }
 
 // NewAnalysisHandler creates a tool handler for document analysis.
-func NewAnalysisHandler(analyzerRepo analysis.Repository) func(context.Context, *mcp.CallToolRequest, *AnalysisParams) (*mcp.CallToolResult, *analysis.AnalyzeResult, error) {
-	return func(ctx context.Context, req *mcp.CallToolRequest, params *AnalysisParams) (*mcp.CallToolResult, *analysis.AnalyzeResult, error) {
+func NewAnalysisHandler(analyzerRepo analysis.Repository) func(context.Context, *mcp.CallToolRequest, *AnalysisParams) (*mcp.CallToolResult, *analysis.AnalyzeOperationResult, error) {
+	return func(ctx context.Context, req *mcp.CallToolRequest, params *AnalysisParams) (*mcp.CallToolResult, *analysis.AnalyzeOperationResult, error) {
 		if params.ModelID != "prebuilt-read" && params.ModelID != "prebuilt-layout" {
 			return nil, nil, fmt.Errorf("unsupported modelId: %s", params.ModelID)
 		}
@@ -42,14 +42,13 @@ func NewAnalysisHandler(analyzerRepo analysis.Repository) func(context.Context, 
 			}
 		}
 
-		analysisReq := analysis.AnalyzeDocumentRequest{
-			ModelID:     params.ModelID,
+		options := analysis.AnalyzeDocumentOptions{
 			DocURL:      params.DocumentURL,
 			Content:     content,
 			ContentType: params.ContentType,
 		}
 
-		result, err := analyzerRepo.AnalyzeDocument(ctx, analysisReq)
+		result, err := analyzerRepo.AnalyzeDocument(ctx, params.ModelID, options)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -56,7 +56,7 @@ func TestAnalyzeDocument_Success(t *testing.T) {
 				}, nil
 			}
 			if req.Method == http.MethodGet && req.URL.String() == operationLocation {
-				result := &analysis.AnalyzeResult{Status: "succeeded"}
+				result := &analysis.AnalyzeOperationResult{Status: "succeeded"}
 				body, _ := json.Marshal(result)
 				return &http.Response{
 					StatusCode: http.StatusOK,
@@ -68,9 +68,9 @@ func TestAnalyzeDocument_Success(t *testing.T) {
 	}
 
 	repo := NewRepositoryWithClient("http://test.com", "dummy-key", mockClient)
-	req := analysis.AnalyzeDocumentRequest{ModelID: "test-model", DocURL: "http://test.com/doc.pdf"}
+	options := analysis.AnalyzeDocumentOptions{DocURL: "http://test.com/doc.pdf"}
 
-	result, err := repo.AnalyzeDocument(ctx, req)
+	result, err := repo.AnalyzeDocument(ctx, "test-model", options)
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -91,7 +91,7 @@ func TestAnalyzeDocument_Failed(t *testing.T) {
 				}, nil
 			}
 			if req.Method == http.MethodGet && req.URL.String() == operationLocation {
-				result := &analysis.AnalyzeResult{Status: "failed"}
+				result := &analysis.AnalyzeOperationResult{Status: "failed"}
 				body, _ := json.Marshal(result)
 				return &http.Response{
 					StatusCode: http.StatusOK,
@@ -103,9 +103,9 @@ func TestAnalyzeDocument_Failed(t *testing.T) {
 	}
 
 	repo := NewRepositoryWithClient("http://test.com", "dummy-key", mockClient)
-	req := analysis.AnalyzeDocumentRequest{ModelID: "test-model", DocURL: "http://test.com/doc.pdf"}
+	options := analysis.AnalyzeDocumentOptions{DocURL: "http://test.com/doc.pdf"}
 
-	_, err := repo.AnalyzeDocument(ctx, req)
+	_, err := repo.AnalyzeDocument(ctx, "test-model", options)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "analysis failed")
@@ -125,7 +125,7 @@ func TestAnalyzeDocument_PollingTimeout(t *testing.T) {
 				}, nil
 			}
 			if req.Method == http.MethodGet && req.URL.String() == operationLocation {
-				result := &analysis.AnalyzeResult{Status: "running"}
+				result := &analysis.AnalyzeOperationResult{Status: "running"}
 				body, _ := json.Marshal(result)
 				return &http.Response{
 					StatusCode: http.StatusOK,
@@ -142,9 +142,9 @@ func TestAnalyzeDocument_PollingTimeout(t *testing.T) {
 	defer func() { retryDelay = originalRetryDelay }()
 
 	repo := NewRepositoryWithClient("http://test.com", "dummy-key", mockClient)
-	req := analysis.AnalyzeDocumentRequest{ModelID: "test-model", DocURL: "http://test.com/doc.pdf"}
+	options := analysis.AnalyzeDocumentOptions{DocURL: "http://test.com/doc.pdf"}
 
-	_, err := repo.AnalyzeDocument(ctx, req)
+	_, err := repo.AnalyzeDocument(ctx, "test-model", options)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "polling timed out")
@@ -163,9 +163,9 @@ func TestAnalyzeDocument_InitiateAnalysisFails(t *testing.T) {
 	}
 
 	repo := NewRepositoryWithClient("http://test.com", "dummy-key", mockClient)
-	req := analysis.AnalyzeDocumentRequest{ModelID: "test-model", DocURL: "http://test.com/doc.pdf"}
+	options := analysis.AnalyzeDocumentOptions{DocURL: "http://test.com/doc.pdf"}
 
-	_, err := repo.AnalyzeDocument(ctx, req)
+	_, err := repo.AnalyzeDocument(ctx, "test-model", options)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to initiate analysis")
@@ -185,7 +185,7 @@ func TestAnalyzeDocument_UnsupportedStatus(t *testing.T) {
 				}, nil
 			}
 			if req.Method == http.MethodGet && req.URL.String() == operationLocation {
-				result := &analysis.AnalyzeResult{Status: "weird_status"}
+				result := &analysis.AnalyzeOperationResult{Status: "weird_status"}
 				body, _ := json.Marshal(result)
 				return &http.Response{
 					StatusCode: http.StatusOK,
@@ -197,9 +197,9 @@ func TestAnalyzeDocument_UnsupportedStatus(t *testing.T) {
 	}
 
 	repo := NewRepositoryWithClient("http://test.com", "dummy-key", mockClient)
-	req := analysis.AnalyzeDocumentRequest{ModelID: "test-model", DocURL: "http://test.com/doc.pdf"}
+	options := analysis.AnalyzeDocumentOptions{DocURL: "http://test.com/doc.pdf"}
 
-	_, err := repo.AnalyzeDocument(ctx, req)
+	_, err := repo.AnalyzeDocument(ctx, "test-model", options)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown status: weird_status")
@@ -224,7 +224,7 @@ func TestAnalyzeDocument_WithContent(t *testing.T) {
 				}, nil
 			}
 			if req.Method == http.MethodGet && req.URL.String() == operationLocation {
-				result := &analysis.AnalyzeResult{Status: "succeeded"}
+				result := &analysis.AnalyzeOperationResult{Status: "succeeded"}
 				body, _ := json.Marshal(result)
 				return &http.Response{
 					StatusCode: http.StatusOK,
@@ -236,13 +236,12 @@ func TestAnalyzeDocument_WithContent(t *testing.T) {
 	}
 
 	repo := NewRepositoryWithClient("http://test.com", "dummy-key", mockClient)
-	req := analysis.AnalyzeDocumentRequest{
-		ModelID:     "test-model",
+	options := analysis.AnalyzeDocumentOptions{
 		Content:     []byte("dummy-content"),
 		ContentType: "application/pdf",
 	}
 
-	result, err := repo.AnalyzeDocument(ctx, req)
+	result, err := repo.AnalyzeDocument(ctx, "test-model", options)
 
 	require.NoError(t, err)
 	require.NotNil(t, result)

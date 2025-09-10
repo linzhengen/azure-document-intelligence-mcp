@@ -50,9 +50,9 @@ func NewRepositoryWithClient(endpoint, apiKey string, httpClient HTTPClient) ana
 }
 
 // AnalyzeDocument analyzes the specified document URL.
-func (r *repository) AnalyzeDocument(ctx context.Context, req analysis.AnalyzeDocumentRequest) (*analysis.AnalyzeResult, error) {
+func (r *repository) AnalyzeDocument(ctx context.Context, modelID string, options analysis.AnalyzeDocumentOptions) (*analysis.AnalyzeOperationResult, error) {
 	// 1. Send analysis request
-	operationLocation, err := r.initiateAnalysis(ctx, req)
+	operationLocation, err := r.initiateAnalysis(ctx, modelID, options)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiate analysis: %w", err)
 	}
@@ -66,22 +66,22 @@ func (r *repository) AnalyzeDocument(ctx context.Context, req analysis.AnalyzeDo
 	return result, nil
 }
 
-func (r *repository) initiateAnalysis(ctx context.Context, analysisReq analysis.AnalyzeDocumentRequest) (string, error) {
-	requestURL := fmt.Sprintf("%s/documentintelligence/documentModels/%s:analyze?api-version=%s", r.endpoint, analysisReq.ModelID, apiVersion)
+func (r *repository) initiateAnalysis(ctx context.Context, modelID string, options analysis.AnalyzeDocumentOptions) (string, error) {
+	requestURL := fmt.Sprintf("%s/documentintelligence/documentModels/%s:analyze?api-version=%s", r.endpoint, modelID, apiVersion)
 
 	var requestBody io.Reader
 	var contentType string
 
-	if analysisReq.DocURL != "" {
-		jsonBody, err := json.Marshal(map[string]string{"urlSource": analysisReq.DocURL})
+	if options.DocURL != "" {
+		jsonBody, err := json.Marshal(map[string]string{"urlSource": options.DocURL})
 		if err != nil {
 			return "", fmt.Errorf("failed to marshal request body: %w", err)
 		}
 		requestBody = bytes.NewBuffer(jsonBody)
 		contentType = "application/json"
-	} else if analysisReq.Content != nil {
-		requestBody = bytes.NewBuffer(analysisReq.Content)
-		contentType = analysisReq.ContentType
+	} else if options.Content != nil {
+		requestBody = bytes.NewBuffer(options.Content)
+		contentType = options.ContentType
 	} else {
 		return "", fmt.Errorf("no document source provided (URL or content)")
 	}
@@ -111,11 +111,10 @@ func (r *repository) initiateAnalysis(ctx context.Context, analysisReq analysis.
 	}
 
 	return operationLocation, nil
-
 }
 
-func (r *repository) pollForResult(ctx context.Context, operationLocation string) (*analysis.AnalyzeResult, error) {
-	var result analysis.AnalyzeResult
+func (r *repository) pollForResult(ctx context.Context, operationLocation string) (*analysis.AnalyzeOperationResult, error) {
+	var result analysis.AnalyzeOperationResult
 
 	for i := 0; i < maxRetries; i++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, operationLocation, nil)

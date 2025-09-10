@@ -38,7 +38,7 @@ func main() {
 		Name:        "analyze_document",
 		Description: "Analyzes a document using Azure Document Intelligence. Pass 'prebuilt-read' or 'prebuilt-layout' in the modelId parameter. Provide the document either via 'documentUrl' or by passing base64 encoded data in 'documentContent' with its 'contentType'.",
 	}
-	mcp.AddTool[*usecase.AnalysisParams, *analysis.AnalyzeResult](server, analyzeToolDef, analysisHandler)
+	mcp.AddTool[*usecase.AnalysisParams, *analysis.AnalyzeOperationResult](server, analyzeToolDef, analysisHandler)
 
 	// 6. Run the server with StdioTransport
 	log.Println("Starting MCP server over stdio")
